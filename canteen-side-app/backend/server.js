@@ -71,21 +71,38 @@ io.on('connection', (socket) => {
   });
 
   // Handle Order Status Update
-  socket.on('update_order_status', async (data) => {
-    try {
-      const { orderId, status } = data;
-      const updatedOrder = await Order.findByIdAndUpdate(
-        orderId, 
-        { status: status }, 
-        { new: true }
-      );
+  // Handle Order Status Update
+socket.on('update_order_status', async (data) => {
+  try {
+    const { orderId, status } = data;
+    const updatedOrder = await Order.findByIdAndUpdate(
+      orderId,
+      { status: status },
+      { new: true }
+    );
 
-      // Broadcast order status update
-      io.emit('order_status_updated', updatedOrder);
-    } catch (error) {
-      console.error('Order status update error:', error);
+    if (!updatedOrder) {
+      console.error(`Order with ID ${orderId} not found`);
+      return;
     }
-  });
+
+    // Broadcast order status update to all clients
+    io.emit('order_status_updated', updatedOrder);
+
+    // Send notification to user app when order is completed
+    if (status === 'completed') {
+      io.emit('order_completed_notification', {
+        message: `Order ${updatedOrder._id} for ${updatedOrder.studentName} has been completed.`,
+        orderId: updatedOrder._id,
+        studentName: updatedOrder.studentName,
+        items: updatedOrder.items,
+      });
+    }
+  } catch (error) {
+    console.error('Order status update error:', error);
+  }
+});
+
 
   socket.on('disconnect', () => {
     console.log('Client disconnected');

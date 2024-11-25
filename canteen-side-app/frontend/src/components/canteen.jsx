@@ -81,46 +81,59 @@ const CanteenDashboard = () => {
 
   const renderOrders = (orders) => {
     return orders.map((order) => (
-      <div key={order._id} className="border p-2 mb-2 rounded">
-        <div>
-          <strong>Order ID:</strong> {order._id}
-        </div>
-        {order.items.map((item) => (
-          <div key={item.name}>
-            {item.name} - Qty: {item.quantity}
+      <div key={order._id} className="mb-4">
+        <div className="bg-gray shadow-md rounded-lg p-4">
+          <div className="flex justify-between items-center border-b pb-3 mb-4">
+            <div ><h2 className="text-lg font-semibold text-gray-800">Name: {order.studentName}</h2>
+            <h3 className="text-m font-normal text-gray-800">Order ID: {order._id}</h3>
+            <h3 className="text-sm text-gray-500">Status: {order.status}</h3>
+
+            </div>
+            {order.status !== 'completed' && (
+              <button
+                onClick={() => handleCompleteOrder(order._id, order.type)}
+                className="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-full"
+              >
+                Complete Order
+              </button>
+            )}
           </div>
-        ))}
-        {order.status !== 'completed' && (
-          <button
-            onClick={() => handleCompleteOrder(order._id, order.type)}
-            className="mt-2 bg-blue-500 text-white py-1 px-3 rounded"
-          >
-            Complete Order
-          </button>
-        )}
+
+          <ul className="space-y-2">
+            {order.items.map((item) => (
+              <li key={item.name} className="flex justify-between">
+                <span className="text-gray-700">{item.name}</span>
+                <span className="text-gray-500">Qty: {item.quantity}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     ));
   };
 
   return (
-    <div className="p-4">
+    <div>
+         <header className="bg-gray-700 text-white p-4 shadow-md">
+        <div className="max-w-screen-xl mx-auto flex items-center justify-between">
+          <h1 className="text-2xl font-bold">SmartBite</h1>
+          {/* You can add additional links or buttons in the navbar here */}
+        </div>
+      </header>
+    <div className="p-6">
+
       {/* Tabs */}
-      <div className="mb-4 flex space-x-4">
+      <div className="mb-6 flex space-x-4">
         <button
           onClick={() => setActiveTab('instant')}
-          className={`py-2 px-4 rounded ${activeTab === 'instant' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+          className={`py-2 px-4 rounded-lg ${activeTab === 'instant' ? 'bg-orange-500 text-white' : 'bg-gray-200'}`}
         >
-          Instant Orders
+          Orders
         </button>
-        <button
-          onClick={() => setActiveTab('delayed')}
-          className={`py-2 px-4 rounded ${activeTab === 'delayed' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-        >
-          Delayed Orders
-        </button>
+       
         <button
           onClick={() => setActiveTab('past')}
-          className={`py-2 px-4 rounded ${activeTab === 'past' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+          className={`py-2 px-4 rounded-lg ${activeTab === 'past' ? 'bg-orange-500 text-white' : 'bg-gray-200'}`}
         >
           Past Orders
         </button>
@@ -128,24 +141,28 @@ const CanteenDashboard = () => {
 
       {/* Order Columns */}
       {activeTab === 'instant' && (
-        <div className="border rounded shadow p-4">
-          <h2 className="text-xl font-bold mb-4">Instant Orders</h2>
-          {renderOrders(instantOrders)}
-        </div>
-      )}
-      {activeTab === 'delayed' && (
-        <div className="border rounded shadow p-4">
-          <h2 className="text-xl font-bold mb-4">Delayed Orders</h2>
-          {renderOrders(delayedOrders)}
-        </div>
-      )}
+  <div className="flex space-x-4">
+    {/* Instant Orders Section */}
+    <div className="border rounded shadow p-4 w-1/2 min-h-[300px] max-h-[800px] overflow-y-auto">
+      <h2 className="text-xl font-bold mb-4">Instant Orders</h2>
+      {renderOrders(instantOrders)}
+    </div>
+
+    {/* Delayed Orders Section */}
+    <div className="border rounded shadow p-4 w-1/2 min-h-[300px] max-h-[800px] overflow-y-auto">
+      <h2 className="text-xl font-bold mb-4">Delayed Orders</h2>
+      {renderOrders(delayedOrders)}
+    </div>
+  </div>
+)}
+      
       {activeTab === 'past' && (
         <div className="border rounded shadow p-4">
           <h2 className="text-xl font-bold mb-4">Past Orders</h2>
           {renderOrders(pastOrders)}
         </div>
       )}
-    </div>
+    </div></div>
   );
 };
 
