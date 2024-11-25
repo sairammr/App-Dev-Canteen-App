@@ -3,7 +3,8 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Alert, Button, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View, Image } from 'react-native';
 import { Camera, ShoppingCart, Clock, Plus, Check, Minus } from 'lucide-react-native';
-
+import axios from 'axios';
+import io from 'socket.io-client';
 // Sample images for products (replace these with actual image URLs)
 const productImages = {
   1: require('./assets/splash.png'), // Replace with actual paths
@@ -13,7 +14,8 @@ const productImages = {
   5: require('./assets/splash.png'),
   6: require('./assets/splash.png'),
 };
-
+const BASE_URL = 'http://localhost:5000/api'; // Your backend base URL
+const socket = io('http://localhost:5000');
 // Stack Navigator Setup
 const Stack = createStackNavigator();
 
@@ -55,8 +57,10 @@ const HomePage = ({ navigation, route }) => {
   const [orderStatus, setOrderStatus] = useState(route.params?.orderStatus || null);
   const [orderTimer, setOrderTimer] = useState(600); // 10 minutes
 
+  // Manage order timer
   useEffect(() => {
     let interval;
+
     if (orderStatus) {
       interval = setInterval(() => {
         setOrderTimer((prevTimer) => {
@@ -70,16 +74,34 @@ const HomePage = ({ navigation, route }) => {
     }
 
     return () => {
-      if (interval) {
-        clearInterval(interval);
-      }
+      if (interval) clearInterval(interval);
     };
   }, [orderStatus]);
 
+  // Listen for socket notifications
+  useEffect(() => {
+    // Handle order completion notification
+    const handleOrderCompleted = (data) => {
+      Alert.alert(
+        'Order Completed',
+        `Order for ${data.studentName} is ready!`,
+        [{ text: 'OK' }]
+      );
+      setOrderStatus(false); // Reset order status
+    };
+
+    socket.on('order_completed_notification', handleOrderCompleted);
+
+    return () => {
+      socket.off('order_completed_notification', handleOrderCompleted); // Cleanup listener
+    };
+  }, []);
+
+  // React to route changes for order status
   useEffect(() => {
     if (route.params?.orderStatus) {
       setOrderStatus(true);
-      setOrderTimer(600);
+      setOrderTimer(600); // Reset timer to 10 minutes
     }
   }, [route.params?.orderStatus]);
 
@@ -118,6 +140,7 @@ const HomePage = ({ navigation, route }) => {
     </View>
   );
 };
+
 
 // Products Page
 const ProductsPage = ({ navigation, route }) => {
@@ -201,60 +224,44 @@ const PaymentPage = ({ navigation, route }) => {
   const { cart } = route.params;
   const [paymentMethod, setPaymentMethod] = useState('gpay');
 
-  const handlePayment = () => {
-    Alert.alert('Payment Successful', 'Your order is getting ready.', [
-      {
-        text: 'OK',
-        onPress: () => navigation.navigate('SmartBite', { orderStatus: true }),
-      },
-    ]);
-  };
+  const handlePayment = async () => {
+    try {
+      const response = await axios.post(`${BASE_URL}/orders`, {
+        studentName: 'John Doe', // Replace with actual user info
+        items: cart,
+        type: 'instant', // Example type
+        totalPrice: cart.reduce((acc, item) => acc + item.price, 0),
+      });
 
-  const cartItems = cart.reduce((acc, item) => {
-    const existingItem = acc.find((i) => i.id === item.id);
-    if (existingItem) {
-      existingItem.quantity += 1;
-    } else {
-      acc.push({ ...item, quantity: 1 });
+      if (response.status === 200) {
+        console.log('Navigating to SmartBite screen...');
+        
+              navigation.navigate('SmartBite', { orderStatus: true });
+            }
+         
+      
+    } catch (error) {
+      console.error('Error placing order:', error);
+      Alert.alert('Error', 'Unable to place your order. Please try again.');
     }
-    return acc;
-  }, []);
-
-  const total = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
+  };
 
   return (
     <View style={styles.container}>
-      <View style={styles.paymentContainer}>
-        <Text style={styles.title}>Payment</Text>
-        <FlatList
-          data={cartItems}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <View style={styles.cartItemContainer}>
-              <Text style={styles.productTitle}>
-                {item.name} ({item.quantity}x)
-              </Text>
-              <Text style={styles.productPrice}>
-                ${(item.price * item.quantity).toFixed(2)}
-              </Text>
-            </View>
-          )}
-        />
-        <Text style={styles.total}>Total: ${total.toFixed(2)}</Text>
-        <TouchableOpacity
-          style={[styles.paymentMethod, paymentMethod === 'gpay' && styles.selectedPaymentMethod]}
-          onPress={() => setPaymentMethod('gpay')}
-        >
-          <Camera color="white" size={32} />
-          <Text style={styles.paymentMethodText}>Google Pay</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.payButton} onPress={handlePayment}>
-          <Text style={styles.payButtonText}>Pay Now</Text>
-        </TouchableOpacity>
-      </View>
+      <Text>Payment Page</Text>
+      <TouchableOpacity
+        style={[styles.paymentMethod, paymentMethod === 'gpay' && styles.selectedPaymentMethod]}
+        onPress={() => setPaymentMethod('gpay')}
+      >
+        <Text>Google Pay</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={styles.payButton} onPress={handlePayment}>
+        <Text>Pay Now</Text>
+      </TouchableOpacity>
     </View>
   );
 };
+
 
 // App Component with Stack Navigator
 const App = () => {

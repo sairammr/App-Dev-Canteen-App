@@ -35,7 +35,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: ["http://localhost:3000", "http://localhost:3001"],
+    origin: ["http://localhost:3000", "http://localhost:3001","http://localhost:8081"],
     methods: ["GET", "POST"]
   }
 });
@@ -138,7 +138,7 @@ app.post('/api/orders', async (req, res) => {
       io.emit('new_order', savedOrder);
   
       // Send a response to the client
-      res.status(201).json(savedOrder);
+      res.status(200).json(savedOrder);
     } catch (error) {
       console.error('Error creating order:', error);
       res.status(500).json({ error: error.message });
